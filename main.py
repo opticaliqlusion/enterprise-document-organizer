@@ -80,22 +80,19 @@ def scantree(path):
             yield entry
 
 
-top_level_globs = [
-    '*.vsproj',      # recursively scan directory, with a twist
-    '*.vcxproj',     # sometimes we want to grab not just files, but directory trees
-    '*.vmx',         # imagine scanning for .vmx files. the files themselves arent all
-    '__init__.py',   # that useful, you need the directory that contains them.
-    'README.md',             
-]
-def scantree_with_directory_escape(path, directory_escape_globs=top_level_globs, file_filters=tuple()):
+# recursively scan directory, with a twist
+# sometimes we want to grab not just files, but directory trees
+# imagine scanning for .vmx files. the files themselves arent all
+# that useful, you need the directory that contains them.         
+def scantree_with_directory_escape(path, special_dir_globs=tuple(), file_filters=tuple()):
     for entry in os.scandir(path):
         if entry.is_dir():
             # check to see if this is a "special" directory, if so, just return the path so we can shutil.copytree
             # otherwise, recurse
-            if any(glob.glob(os.path.join(entry.path, pattern)) for pattern in directory_escape_globs):
+            if any(glob.glob(os.path.join(entry.path, pattern)) for pattern in special_dir_globs):
                 yield entry
             else:
-                yield from scantree_with_directory_escape(entry.path, directory_escape_globs=directory_escape_globs, file_filters=file_filters)
+                yield from scantree_with_directory_escape(entry.path, special_dir_globs=special_dir_globs, file_filters=file_filters)
         else:
             # check to see if this is a file type we're interested in
             with warnings.catch_warnings():
@@ -132,18 +129,23 @@ def load_manifest_from_file(fpath):
         return json.loads(manifest_data)
 
 
-def copyanything(src, dst):
+def copyanything(src, dst, doraise=True):
     try:
-        shutil.copytree(src, dst)
-    except OSError as exc: # python >2.5
-        if exc.errno == errno.ENOTDIR:
+        if os.path.isfile(src):
             shutil.copy(src, dst)
-        else: raise
+        else:
+            shutil.copytree(src, dst)
+    except FileExistsError:
+        if doraise:
+            raise
+        else:
+            pass
+    
 
 # recursively scan a root directory, eventually creating a manifest of
 # the files discovered. Optionally, pass in a filter to only scan
 # certain files.
-def scan_to_file(rel_root_dir, out_directory, filters=tuple(), nthreads=4):
+def scan_to_file(rel_root_dir, out_directory, filters=tuple(), special_dir_globs=tuple(), nthreads=4):
 
     # we're gonna use threading to copy files
     copy_queue = queue.Queue()
@@ -174,7 +176,7 @@ def scan_to_file(rel_root_dir, out_directory, filters=tuple(), nthreads=4):
     print('=== Part One: Scan Dirs ===')
 
     # now record all the files we found
-    for entry in scantree_with_directory_escape(root_dir, file_filters=filters):
+    for entry in scantree_with_directory_escape(root_dir, file_filters=filters, special_dir_globs=special_dir_globs):
 
         # normalize the path and introduce the unique drive name
         npath = (splitdrive(entry.path)[1]).replace(os.sep, posixpath.sep)
@@ -219,7 +221,7 @@ def scan_to_file(rel_root_dir, out_directory, filters=tuple(), nthreads=4):
         while True:
             try:
                 src, dst = in_queue.get(block=False)
-                copyanything(src, dst)
+                copyanything(src, dst, doraise=False)
             except queue.Empty:
                 break
         return
@@ -257,7 +259,8 @@ if __name__ == "__main__":
     parser_scan.add_argument('-j', '--num_threads', type=int, default=4, help='Number of threads to use to copy.')
     parser_scan.add_argument('mount_point', help='The mount point to scan. The root of the search for the application.')
     parser_scan.add_argument('output', help='The output manifest to create')
-    parser_scan.add_argument('filters', nargs='*', help='A list of file globs to scan, using standard globing syntax.')
+    parser_scan.add_argument('--file-filters', nargs='+', help='A list of file globs to scan, using standard globing syntax.')
+    parser_scan.add_argument('--special-dir-globs', nargs='+', help='A list of special file globs to scan at the top level of special directories, using standard globing syntax. Eg *.vcxproj, *.vmx')
 
     parser_scan = subparsers.add_parser('merge', help='Merge a source manifest into a destination manifest')
     parser_scan.add_argument('src', help='The source manifest to read from.')
@@ -266,6 +269,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.mode == 'scan':
-        scan_to_file(args.mount_point, args.output, filters=tuple(args.filters), nthreads=args.num_threads)
+        scan_to_file(args.mount_point, args.output, filters=args.file_filters, special_dir_globs=args.special_dir_globs, nthreads=args.num_threads)
     else:
         raise NotImplemented('Mode not recognized: {}'.format(args.mode))

@@ -22,7 +22,7 @@ optional arguments:
 Example:
 
 ```
-python main.py scan E\test-scan-root docs-backup *.pdf *.doc *.docx
+python main.py scan E:\test-scan-root docs-backup --file-filters *.pdf *.doc *.docx --special-dir-globs *.vsproj *.vcxproj
 ```
 
 Requirements:
