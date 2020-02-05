@@ -13,6 +13,7 @@ import json
 import shutil
 import errno
 import glob
+import multiprocessing
 
 from os.path import split, join, splitdrive
 import posixpath
@@ -145,7 +146,10 @@ def copyanything(src, dst, doraise=True):
 # recursively scan a root directory, eventually creating a manifest of
 # the files discovered. Optionally, pass in a filter to only scan
 # certain files.
-def scan_to_file(rel_root_dir, out_directory, filters=tuple(), special_dir_globs=tuple(), nthreads=4):
+def scan_to_file(rel_root_dir, out_directory, filters=tuple(), special_dir_globs=tuple(), nthreads=None):
+
+    if nthreads == None:
+        nthreads = multiprocessing.cpu_count()
 
     # we're gonna use threading to copy files
     copy_queue = queue.Queue()
@@ -230,6 +234,7 @@ def scan_to_file(rel_root_dir, out_directory, filters=tuple(), special_dir_globs
     threads = []
     for i in range(nthreads):
         thread = threading.Thread(target=fn_threadproc, args=[copy_queue])
+        thread.name = 'copy-worker-{}'.format(i)
         threads.append(thread)
         thread.start()
 
@@ -256,7 +261,7 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(help='sub-command help', dest='mode')
 
     parser_scan = subparsers.add_parser('scan', help='Scan a directory, volume, etc. and summarize its contents')
-    parser_scan.add_argument('-j', '--num_threads', type=int, default=4, help='Number of threads to use to copy.')
+    parser_scan.add_argument('-j', '--num_threads', type=int, default=None, help='Number of threads to use to copy.')
     parser_scan.add_argument('mount_point', help='The mount point to scan. The root of the search for the application.')
     parser_scan.add_argument('output', help='The output manifest to create')
     parser_scan.add_argument('--file-filters', nargs='+', help='A list of file globs to scan, using standard globing syntax.')
