@@ -143,7 +143,7 @@ def copyanything(src, dst):
 # recursively scan a root directory, eventually creating a manifest of
 # the files discovered. Optionally, pass in a filter to only scan
 # certain files.
-def scan_to_file(root_dir, out_directory, filters=tuple(), nthreads=4):
+def scan_to_file(rel_root_dir, out_directory, filters=tuple(), nthreads=4):
 
     # we're gonna use threading to copy files
     copy_queue = queue.Queue()
@@ -164,6 +164,7 @@ def scan_to_file(root_dir, out_directory, filters=tuple(), nthreads=4):
         }
 
     # calculate what we're actually scanning
+    root_dir = os.path.abspath(rel_root_dir)
     source_media = get_drive_id(root_dir)
 
     # record the media we scanned
