@@ -10,5 +10,5 @@ app.config['BOOTSTRAP_SERVE_LOCAL'] = True
 
 @app.route('/')
 def index():
-    return 'index'
+    return render_template('index.html')
 
