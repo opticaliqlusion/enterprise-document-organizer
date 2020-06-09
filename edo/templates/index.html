@@ -1,0 +1,40 @@
+<!doctype html>
+
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+
+    <script src="{{ url_for('static', filename='js/jquery-3.5.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+</head>
+
+<title>Hello from Flask</title>
+
+
+<!-- Search form -->
+<!--input class="form-control" type="text" placeholder="Search" aria-label="Search"-->
+
+<body id="page-top">
+
+<!-- Page Wrapper -->
+<div style="background: url('static/img/aircraft-airplane-boat.jpg')" class="page-holder bg-cover">
+
+    <div class="container py-5">
+      <header class="text-center text-white py-5">
+        <h1 class="display-4 font-weight-bold mb-4">Bootstrap Background Image</h1>
+        <p class="lead mb-0">Create a responsive full-page background image window using Bootstrap 4.</p>
+      </header>
+    
+    <!-- Search form -->
+    <form class="form-inline d-flex justify-content-center md-form form-sm" action="{{ url_for('results') }}" method="post" name="searchForm">
+        <input class="form-control form-control-sm mr-3 w-75" type="text" placeholder="Search" aria-label="Search" name="searchInput">
+        <i class="fas fa-search" aria-hidden="true"></i>
+    </form>
+
+    </div>
+  </div>
+  
+  
+  </body>
+  
+  </html>

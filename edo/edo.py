@@ -130,12 +130,13 @@ def query_cache(query, max_results=10):
     for key, value in master_file_dict.items():
         compare_list = list(value['metadata'].values()) + list(value['subdata'].values())
         scores = [ (bad_ratio_comparison(i.lower(), query.lower()), i.lower()) for i in compare_list ]
-        highest_match = max(scores,key=lambda x: x[0])
+        score, substring = max(scores, key=lambda x: x[0])
 
-        result = (value['path'], highest_match[0], highest_match[1])
-        results.append(result)
-        results.sort(key = lambda x : x[1], reverse=True)
-        results = results[:max_results]
+        if score > 0.0:
+            result = (value['path'], score, substring)
+            results.append(result)
+            results.sort(key = lambda x : x[1], reverse=True)
+            results = results[:max_results]
 
     return results
 
